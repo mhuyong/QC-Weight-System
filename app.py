@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime, timedelta
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='docs', static_url_path='/docs')
 app.secret_key = 'weight-qc-system-2024'
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'weight_qc.db')

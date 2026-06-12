@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบ QC น้ำหนักสินค้า</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; }
+        .navbar { background: linear-gradient(135deg, #1a237e, #283593) !important; }
+        .navbar-brand { font-weight: 700; font-size: 1.3rem; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .card-header { border-radius: 12px 12px 0 0 !important; font-weight: 600; }
+        .btn-primary { background: #1a237e; border-color: #1a237e; }
+        .btn-primary:hover { background: #283593; border-color: #283593; }
+        .prev-info { background: #e8eaf6; border-left: 4px solid #3f51b5; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .nav-link { cursor: pointer; }
+        .home-card { transition: transform 0.2s; cursor: pointer; text-decoration: none; }
+        .home-card:hover { transform: translateY(-5px); }
+        .toast-container { position: fixed; top: 70px; right: 20px; z-index: 9999; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" onclick="showPage('home')"><i class="bi bi-speedometer2"></i> QC Weight System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" onclick="showPage('record')" id="nav-record"><i class="bi bi-pencil-square"></i> บันทึกน้ำหนัก</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showPage('records')" id="nav-records"><i class="bi bi-table"></i> ข้อมูลบันทึก</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showPage('summary')" id="nav-summary"><i class="bi bi-bar-chart-line"></i> สรุปผล</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showPage('settings')" id="nav-settings"><i class="bi bi-gear"></i> ตั้งค่า</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="container-fluid mt-4 mb-5">
+
+        <!-- HOME PAGE -->
+        <div class="page active" id="page-home">
+            <div class="row justify-content-center mt-5">
+                <div class="col-lg-8">
+                    <div class="text-center mb-5">
+                        <h1 class="fw-bold" style="color: #1a237e;"><i class="bi bi-speedometer2"></i> ระบบ QC น้ำหนักสินค้า</h1>
+                        <p class="text-muted fs-5">ระบบบันทึกและตรวจสอบน้ำหนักสินค้าประจำเครื่องจักร</p>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-6"><div class="card home-card h-100 text-center p-4" onclick="showPage('record')"><div class="card-body"><i class="bi bi-pencil-square text-primary" style="font-size:3rem;"></i><h4 class="mt-3 fw-bold text-dark">บันทึกน้ำหนัก</h4><p class="text-muted">QC บันทึกน้ำหนักสินค้าแต่ละเครื่องจักร<br>ตรวจทุกชั่วโมง</p></div></div></div>
+                        <div class="col-md-6"><div class="card home-card h-100 text-center p-4" onclick="showPage('records')"><div class="card-body"><i class="bi bi-table text-success" style="font-size:3rem;"></i><h4 class="mt-3 fw-bold text-dark">ข้อมูลบันทึก</h4><p class="text-muted">ดูข้อมูลที่บันทึกทั้งหมด<br>ค้นหาตามวันที่และชั่วโมง</p></div></div></div>
+                        <div class="col-md-6"><div class="card home-card h-100 text-center p-4" onclick="showPage('summary')"><div class="card-body"><i class="bi bi-bar-chart-line text-warning" style="font-size:3rem;"></i><h4 class="mt-3 fw-bold text-dark">สรุปผล</h4><p class="text-muted">สรุปผลงานพนักงานคุมเครื่อง<br>และความถี่การตรวจของ QC</p></div></div></div>
+                        <div class="col-md-6"><div class="card home-card h-100 text-center p-4" onclick="showPage('settings')"><div class="card-body"><i class="bi bi-gear text-secondary" style="font-size:3rem;"></i><h4 class="mt-3 fw-bold text-dark">ตั้งค่า</h4><p class="text-muted">จัดการเครื่องจักร พนักงาน QC<br>และข้อมูลสินค้า</p></div></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECORD PAGE -->
+        <div class="page" id="page-record">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white"><h5 class="mb-0"><i class="bi bi-pencil-square"></i> บันทึกน้ำหนักสินค้า</h5></div>
+                        <div class="card-body">
+                            <div id="prevInfo" class="prev-info d-none">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-clock-history"></i> ข้อมูลชั่วโมงก่อนหน้า</h6>
+                                <div class="row">
+                                    <div class="col-md-4"><small class="text-muted">คนคุมเครื่อง:</small> <strong id="prevOperator">-</strong></div>
+                                    <div class="col-md-4"><small class="text-muted">QC ตรวจ:</small> <strong id="prevQC">-</strong></div>
+                                    <div class="col-md-4"><small class="text-muted">น้ำหนักล่าสุด:</small> <strong id="prevWeight">-</strong> <span id="prevStatus" class="badge"></span></div>
+                                </div>
+                            </div>
+                            <form id="recordForm" onsubmit="return saveRecord(event)">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">วันที่ตรวจ <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control" id="checkDate" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">ชั่วโมงที่ตรวจ <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="checkHour" required></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">เครื่องจักร <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="machineId" required><option value="">-- เลือกเครื่องจักร --</option></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">สินค้า <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="productId" required><option value="">-- เลือกสินค้า --</option></select>
+                                    </div>
+                                    <div class="col-12" id="specInfo" style="display:none;">
+                                        <div class="alert alert-info mb-0 py-2">
+                                            <i class="bi bi-info-circle"></i> พิกัด: <strong id="specTarget">-</strong> | ต่ำสุด: <strong id="specMin">-</strong> | สูงสุด: <strong id="specMax">-</strong> <span id="specUnit"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">พนักงานคุมเครื่อง <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="operatorId" required><option value="">-- เลือกพนักงาน --</option></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">QC ผู้ตรวจ <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="qcId" required><option value="">-- เลือก QC --</option></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">น้ำหนักสินค้า <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control form-control-lg" id="weightInput" step="0.01" required placeholder="กรอกน้ำหนัก">
+                                            <span class="input-group-text" id="weightUnit">กรัม</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">หมายเหตุ</label>
+                                        <input type="text" class="form-control form-control-lg" id="noteInput" placeholder="หมายเหตุ (ถ้ามี)">
+                                    </div>
+                                    <div class="col-12" id="weightResult" style="display:none;">
+                                        <div class="alert py-2 mb-0" id="weightAlert"><strong id="weightStatus"></strong></div>
+                                    </div>
+                                    <div class="col-12 mt-4">
+                                        <button type="submit" class="btn btn-primary btn-lg w-100"><i class="bi bi-save"></i> บันทึกข้อมูล</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECORDS PAGE -->
+        <div class="page" id="page-records">
+            <div class="card">
+                <div class="card-header bg-success text-white"><h5 class="mb-0"><i class="bi bi-table"></i> ข้อมูลบันทึกน้ำหนัก</h5></div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">วันที่</label>
+                            <input type="date" class="form-control" id="filterDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">ชั่วโมง</label>
+                            <select class="form-select" id="filterHour"><option value="">-- ทุกชั่วโมง --</option></select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" onclick="loadRecords()"><i class="bi bi-search"></i> ค้นหา</button>
+                        </div>
+                    </div>
+                    <div id="recordsTableContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY PAGE -->
+        <div class="page" id="page-summary">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> สรุปผลการตรวจน้ำหนัก</h5></div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">วันที่เริ่มต้น</label>
+                            <input type="date" class="form-control" id="summaryFrom">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">วันที่สิ้นสุด</label>
+                            <input type="date" class="form-control" id="summaryTo">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" onclick="loadSummary()"><i class="bi bi-search"></i> ค้นหา</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="summaryContainer"></div>
+        </div>
+
+        <!-- SETTINGS PAGE -->
+        <div class="page" id="page-settings">
+            <h4 class="mb-4"><i class="bi bi-gear"></i> ตั้งค่าข้อมูลหลัก</h4>
+            <div class="row g-4">
+                <!-- Machines -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white"><h6 class="mb-0"><i class="bi bi-cpu"></i> เครื่องจักร</h6></div>
+                        <div class="card-body">
+                            <form class="row g-2 mb-3" onsubmit="return addMachine(event)">
+                                <div class="col-5"><input type="text" class="form-control" id="newMachineNo" placeholder="เลขเครื่อง" required></div>
+                                <div class="col-5"><input type="text" class="form-control" id="newMachineName" placeholder="ชื่อเครื่อง (ถ้ามี)"></div>
+                                <div class="col-2"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button></div>
+                            </form>
+                            <div id="machinesTable"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Products -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white"><h6 class="mb-0"><i class="bi bi-box-seam"></i> สินค้า / พิกัดน้ำหนัก</h6></div>
+                        <div class="card-body">
+                            <form class="row g-2 mb-3" onsubmit="return addProduct(event)">
+                                <div class="col-12"><input type="text" class="form-control" id="newProductName" placeholder="ชื่อสินค้า" required></div>
+                                <div class="col-4"><input type="number" class="form-control" id="newProductTarget" step="0.01" placeholder="น้ำหนักเป้า" required></div>
+                                <div class="col-3"><input type="number" class="form-control" id="newProductMin" step="0.01" placeholder="ต่ำสุด" required></div>
+                                <div class="col-3"><input type="number" class="form-control" id="newProductMax" step="0.01" placeholder="สูงสุด" required></div>
+                                <div class="col-2"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button></div>
+                                <div class="col-12"><input type="text" class="form-control" id="newProductUnit" placeholder="หน่วย (ค่าเริ่มต้น: กรัม)"></div>
+                            </form>
+                            <div id="productsTable"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Operators -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white"><h6 class="mb-0"><i class="bi bi-person"></i> พนักงานคุมเครื่อง</h6></div>
+                        <div class="card-body">
+                            <form class="row g-2 mb-3" onsubmit="return addOperator(event)">
+                                <div class="col-5"><input type="text" class="form-control" id="newOperatorName" placeholder="ชื่อ-นามสกุล" required></div>
+                                <div class="col-5"><input type="text" class="form-control" id="newOperatorEmpId" placeholder="รหัสพนักงาน"></div>
+                                <div class="col-2"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button></div>
+                            </form>
+                            <div id="operatorsTable"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- QC -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white"><h6 class="mb-0"><i class="bi bi-clipboard-check"></i> QC ผู้ตรวจ</h6></div>
+                        <div class="card-body">
+                            <form class="row g-2 mb-3" onsubmit="return addQC(event)">
+                                <div class="col-5"><input type="text" class="form-control" id="newQCName" placeholder="ชื่อ-นามสกุล" required></div>
+                                <div class="col-5"><input type="text" class="form-control" id="newQCEmpId" placeholder="รหัสพนักงาน"></div>
+                                <div class="col-2"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button></div>
+                            </form>
+                            <div id="qcTable"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Edit Machine Modal -->
+    <div class="modal fade" id="editMachineModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header bg-warning"><h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไขเครื่องจักร</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="editMachineId">
+            <div class="mb-3"><label class="form-label fw-bold">เลขเครื่อง *</label><input type="text" class="form-control" id="editMachineNo" required></div>
+            <div class="mb-3"><label class="form-label fw-bold">ชื่อเครื่อง</label><input type="text" class="form-control" id="editMachineName"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-warning" onclick="saveMachineEdit()"><i class="bi bi-save"></i> บันทึก</button></div>
+    </div></div></div>
+
+    <!-- Edit Operator Modal -->
+    <div class="modal fade" id="editOperatorModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header bg-warning"><h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไขพนักงานคุมเครื่อง</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="editOperatorId">
+            <div class="mb-3"><label class="form-label fw-bold">ชื่อ-นามสกุล *</label><input type="text" class="form-control" id="editOperatorName" required></div>
+            <div class="mb-3"><label class="form-label fw-bold">รหัสพนักงาน</label><input type="text" class="form-control" id="editOperatorEmpId"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-warning" onclick="saveOperatorEdit()"><i class="bi bi-save"></i> บันทึก</button></div>
+    </div></div></div>
+
+    <!-- Edit QC Modal -->
+    <div class="modal fade" id="editQCModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header bg-warning"><h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไข QC ผู้ตรวจ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="editQCId">
+            <div class="mb-3"><label class="form-label fw-bold">ชื่อ-นามสกุล *</label><input type="text" class="form-control" id="editQCNameField" required></div>
+            <div class="mb-3"><label class="form-label fw-bold">รหัสพนักงาน</label><input type="text" class="form-control" id="editQCEmpId"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-warning" onclick="saveQCEdit()"><i class="bi bi-save"></i> บันทึก</button></div>
+    </div></div></div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header bg-warning"><h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไขสินค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="editProductId">
+            <div class="mb-3"><label class="form-label fw-bold">ชื่อสินค้า *</label><input type="text" class="form-control" id="editProductName" required></div>
+            <div class="row g-3">
+                <div class="col-4"><label class="form-label fw-bold">น้ำหนักเป้า *</label><input type="number" class="form-control" id="editProductTarget" step="0.01" required></div>
+                <div class="col-4"><label class="form-label fw-bold">ต่ำสุด *</label><input type="number" class="form-control" id="editProductMin" step="0.01" required></div>
+                <div class="col-4"><label class="form-label fw-bold">สูงสุด *</label><input type="number" class="form-control" id="editProductMax" step="0.01" required></div>
+            </div>
+            <div class="mb-3 mt-3"><label class="form-label fw-bold">หน่วย</label><input type="text" class="form-control" id="editProductUnit"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-warning" onclick="saveProductEdit()"><i class="bi bi-save"></i> บันทึก</button></div>
+    </div></div></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
