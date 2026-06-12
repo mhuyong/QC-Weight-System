@@ -2,7 +2,7 @@
 const SUPABASE_URL = 'https://ougrkzfkohgfpfrrcmyk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91Z3JremZrb2hnZnBmcnJjbXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjk5NDIsImV4cCI6MjA5Njg0NTk0Mn0.0_xqKgpsP7nWWITCbd3KMo-JzS9O8oH4XMecoYOtb-U';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== TOAST =====
 function showToast(msg, type) {
@@ -42,7 +42,7 @@ async function addMachine(e) {
     e.preventDefault();
     const no = document.getElementById('newMachineNo').value.trim();
     const name = document.getElementById('newMachineName').value.trim();
-    const { error } = await supabase.from('machines').insert({ machine_no: no, machine_name: name });
+    const { error } = await db.from('machines').insert({ machine_no: no, machine_name: name });
     if (error) { showToast(error.message.includes('duplicate') ? 'หมายเลขเครื่องจักรนี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newMachineNo').value = '';
     document.getElementById('newMachineName').value = '';
@@ -52,13 +52,13 @@ async function addMachine(e) {
 }
 
 async function toggleMachine(id) {
-    const { data } = await supabase.from('machines').select('is_active').eq('id', id).single();
-    await supabase.from('machines').update({ is_active: !data.is_active }).eq('id', id);
+    const { data } = await db.from('machines').select('is_active').eq('id', id).single();
+    await db.from('machines').update({ is_active: !data.is_active }).eq('id', id);
     renderSettings();
 }
 
 async function openEditMachine(id) {
-    const { data } = await supabase.from('machines').select('*').eq('id', id).single();
+    const { data } = await db.from('machines').select('*').eq('id', id).single();
     document.getElementById('editMachineId').value = id;
     document.getElementById('editMachineNo').value = data.machine_no;
     document.getElementById('editMachineName').value = data.machine_name || '';
@@ -69,7 +69,7 @@ async function saveMachineEdit() {
     const id = parseInt(document.getElementById('editMachineId').value);
     const no = document.getElementById('editMachineNo').value.trim();
     const name = document.getElementById('editMachineName').value.trim();
-    const { error } = await supabase.from('machines').update({ machine_no: no, machine_name: name }).eq('id', id);
+    const { error } = await db.from('machines').update({ machine_no: no, machine_name: name }).eq('id', id);
     if (error) { showToast(error.message.includes('duplicate') ? 'หมายเลขเครื่องจักรนี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editMachineModal')).hide();
     showToast('แก้ไขเครื่องจักรสำเร็จ', 'success');
@@ -84,7 +84,7 @@ async function addProduct(e) {
     const min = parseFloat(document.getElementById('newProductMin').value);
     const max = parseFloat(document.getElementById('newProductMax').value);
     const unit = document.getElementById('newProductUnit').value.trim() || 'กรัม';
-    const { error } = await supabase.from('products').insert({ name, target_weight: target, min_weight: min, max_weight: max, unit });
+    const { error } = await db.from('products').insert({ name, target_weight: target, min_weight: min, max_weight: max, unit });
     if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อสินค้านี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newProductName').value = '';
     document.getElementById('newProductTarget').value = '';
@@ -97,7 +97,7 @@ async function addProduct(e) {
 }
 
 async function openEditProduct(id) {
-    const { data } = await supabase.from('products').select('*').eq('id', id).single();
+    const { data } = await db.from('products').select('*').eq('id', id).single();
     document.getElementById('editProductId').value = id;
     document.getElementById('editProductName').value = data.name;
     document.getElementById('editProductTarget').value = data.target_weight;
@@ -114,7 +114,7 @@ async function saveProductEdit() {
     const min = parseFloat(document.getElementById('editProductMin').value);
     const max = parseFloat(document.getElementById('editProductMax').value);
     const unit = document.getElementById('editProductUnit').value.trim() || 'กรัม';
-    const { error } = await supabase.from('products').update({ name, target_weight: target, min_weight: min, max_weight: max, unit }).eq('id', id);
+    const { error } = await db.from('products').update({ name, target_weight: target, min_weight: min, max_weight: max, unit }).eq('id', id);
     if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อสินค้านี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
     showToast('แก้ไขสินค้าสำเร็จ', 'success');
@@ -126,7 +126,7 @@ async function addOperator(e) {
     e.preventDefault();
     const name = document.getElementById('newOperatorName').value.trim();
     const empId = document.getElementById('newOperatorEmpId').value.trim();
-    const { error } = await supabase.from('operators').insert({ name, employee_id: empId });
+    const { error } = await db.from('operators').insert({ name, employee_id: empId });
     if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อพนักงานนี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newOperatorName').value = '';
     document.getElementById('newOperatorEmpId').value = '';
@@ -136,13 +136,13 @@ async function addOperator(e) {
 }
 
 async function toggleOperator(id) {
-    const { data } = await supabase.from('operators').select('is_active').eq('id', id).single();
-    await supabase.from('operators').update({ is_active: !data.is_active }).eq('id', id);
+    const { data } = await db.from('operators').select('is_active').eq('id', id).single();
+    await db.from('operators').update({ is_active: !data.is_active }).eq('id', id);
     renderSettings();
 }
 
 async function openEditOperator(id) {
-    const { data } = await supabase.from('operators').select('*').eq('id', id).single();
+    const { data } = await db.from('operators').select('*').eq('id', id).single();
     document.getElementById('editOperatorId').value = id;
     document.getElementById('editOperatorName').value = data.name;
     document.getElementById('editOperatorEmpId').value = data.employee_id || '';
@@ -153,7 +153,7 @@ async function saveOperatorEdit() {
     const id = parseInt(document.getElementById('editOperatorId').value);
     const name = document.getElementById('editOperatorName').value.trim();
     const empId = document.getElementById('editOperatorEmpId').value.trim();
-    const { error } = await supabase.from('operators').update({ name, employee_id: empId }).eq('id', id);
+    const { error } = await db.from('operators').update({ name, employee_id: empId }).eq('id', id);
     if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อพนักงานนี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editOperatorModal')).hide();
     showToast('แก้ไขพนักงานคุมเครื่องสำเร็จ', 'success');
@@ -165,7 +165,7 @@ async function addQC(e) {
     e.preventDefault();
     const name = document.getElementById('newQCName').value.trim();
     const empId = document.getElementById('newQCEmpId').value.trim();
-    const { error } = await supabase.from('qc_inspectors').insert({ name, employee_id: empId });
+    const { error } = await db.from('qc_inspectors').insert({ name, employee_id: empId });
     if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อ QC นี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newQCName').value = '';
     document.getElementById('newQCEmpId').value = '';
@@ -175,13 +175,13 @@ async function addQC(e) {
 }
 
 async function toggleQC(id) {
-    const { data } = await supabase.from('qc_inspectors').select('is_active').eq('id', id).single();
-    await supabase.from('qc_inspectors').update({ is_active: !data.is_active }).eq('id', id);
+    const { data } = await db.from('qc_inspectors').select('is_active').eq('id', id).single();
+    await db.from('qc_inspectors').update({ is_active: !data.is_active }).eq('id', id);
     renderSettings();
 }
 
 async function openEditQC(id) {
-    const { data } = await supabase.from('qc_inspectors').select('*').eq('id', id).single();
+    const { data } = await db.from('qc_inspectors').select('*').eq('id', id).single();
     document.getElementById('editQCId').value = id;
     document.getElementById('editQCNameField').value = data.name;
     document.getElementById('editQCEmpId').value = data.employee_id || '';
@@ -192,7 +192,7 @@ async function saveQCEdit() {
     const id = parseInt(document.getElementById('editQCId').value);
     const name = document.getElementById('editQCNameField').value.trim();
     const empId = document.getElementById('editQCEmpId').value.trim();
-    const { error } = await supabase.from('qc_inspectors').update({ name, employee_id: empId }).eq('id', id);
+    const { error } = await db.from('qc_inspectors').update({ name, employee_id: empId }).eq('id', id);
     if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อ QC นี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editQCModal')).hide();
     showToast('แก้ไข QC สำเร็จ', 'success');
@@ -201,10 +201,10 @@ async function saveQCEdit() {
 
 // ===== RENDER SETTINGS =====
 async function renderSettings() {
-    const { data: machines } = await supabase.from('machines').select('*').order('machine_no');
-    const { data: products } = await supabase.from('products').select('*').order('name');
-    const { data: operators } = await supabase.from('operators').select('*').order('name');
-    const { data: qcs } = await supabase.from('qc_inspectors').select('*').order('name');
+    const { data: machines } = await db.from('machines').select('*').order('machine_no');
+    const { data: products } = await db.from('products').select('*').order('name');
+    const { data: operators } = await db.from('operators').select('*').order('name');
+    const { data: qcs } = await db.from('qc_inspectors').select('*').order('name');
 
     document.getElementById('machinesTable').innerHTML = machines && machines.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
         <thead class="table-light"><tr><th>เลขเครื่อง</th><th>ชื่อ</th><th>สถานะ</th><th></th></tr></thead>
@@ -268,10 +268,10 @@ async function initRecordPage() {
 }
 
 async function populateDropdowns() {
-    const { data: machines } = await supabase.from('machines').select('*').eq('is_active', true).order('machine_no');
-    const { data: operators } = await supabase.from('operators').select('*').eq('is_active', true).order('name');
-    const { data: qcs } = await supabase.from('qc_inspectors').select('*').eq('is_active', true).order('name');
-    const { data: products } = await supabase.from('products').select('*').order('name');
+    const { data: machines } = await db.from('machines').select('*').eq('is_active', true).order('machine_no');
+    const { data: operators } = await db.from('operators').select('*').eq('is_active', true).order('name');
+    const { data: qcs } = await db.from('qc_inspectors').select('*').eq('is_active', true).order('name');
+    const { data: products } = await db.from('products').select('*').order('name');
 
     document.getElementById('machineId').innerHTML = '<option value="">-- เลือกเครื่องจักร --</option>' +
         (machines || []).map(m => `<option value="${m.id}">${esc(m.machine_no)}${m.machine_name ? ' - ' + esc(m.machine_name) : ''}</option>`).join('');
@@ -303,7 +303,7 @@ async function loadPreviousRecord() {
         prevDate = d.toISOString().slice(0, 10);
     }
 
-    const { data: records } = await supabase.from('weight_records')
+    const { data: records } = await db.from('weight_records')
         .select('*, operators(name), qc_inspectors(name), products(name)')
         .eq('machine_id', machineId).eq('check_date', prevDate).eq('check_hour', prevHour)
         .order('created_at', { ascending: false }).limit(1);
@@ -333,7 +333,7 @@ async function loadProductSpec() {
     const specInfo = document.getElementById('specInfo');
     if (!productId) { specInfo.style.display = 'none'; currentSpec = null; return; }
 
-    const { data } = await supabase.from('products').select('*').eq('id', productId).single();
+    const { data } = await db.from('products').select('*').eq('id', productId).single();
     if (data) {
         currentSpec = data;
         document.getElementById('specTarget').textContent = data.target_weight;
@@ -382,10 +382,10 @@ async function saveRecord(e) {
     const checkHour = parseInt(document.getElementById('checkHour').value);
     const note = document.getElementById('noteInput').value.trim();
 
-    const { data: product } = await supabase.from('products').select('*').eq('id', productId).single();
+    const { data: product } = await db.from('products').select('*').eq('id', productId).single();
     const status = determineStatus(weight, product.min_weight, product.max_weight);
 
-    const { error } = await supabase.from('weight_records').insert({
+    const { error } = await db.from('weight_records').insert({
         machine_id: machineId, operator_id: operatorId, qc_id: qcId,
         product_id: productId, weight, status, check_date: checkDate, check_hour: checkHour, note
     });
@@ -416,7 +416,7 @@ async function loadRecords() {
     const date = document.getElementById('filterDate').value;
     const hour = document.getElementById('filterHour').value;
 
-    let query = supabase.from('weight_records')
+    let query = db.from('weight_records')
         .select('*, machines(machine_no), operators(name), qc_inspectors(name), products(name, min_weight, max_weight, unit)')
         .eq('check_date', date);
 
@@ -457,11 +457,11 @@ async function loadSummary() {
     const from = document.getElementById('summaryFrom').value;
     const to = document.getElementById('summaryTo').value;
 
-    const { data: records } = await supabase.from('weight_records')
+    const { data: records } = await db.from('weight_records')
         .select('*, machines(machine_no), operators(name), qc_inspectors(name), products(name)')
         .gte('check_date', from).lte('check_date', to);
 
-    const { data: activeMachines } = await supabase.from('machines').select('id').eq('is_active', true);
+    const { data: activeMachines } = await db.from('machines').select('id').eq('is_active', true);
     const totalMachines = activeMachines ? activeMachines.length : 0;
 
     const container = document.getElementById('summaryContainer');
