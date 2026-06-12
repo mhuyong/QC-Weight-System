@@ -1,4 +1,4 @@
-// db is initialized in index.html before this script loads
+let db;
 
 // ===== TOAST =====
 function showToast(msg, type) {
@@ -564,5 +564,9 @@ async function loadSummary() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+    db = window.supabase.createClient(
+        'https://ougrkzfkohgfpfrrcmyk.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91Z3JremZrb2hnZnBmcnJjbXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjk5NDIsImV4cCI6MjA5Njg0NTk0Mn0.0_xqKgpsP7nWWITCbd3KMo-JzS9O8oH4XMecoYOtb-U'
+    );
     showPage('home');
 });
