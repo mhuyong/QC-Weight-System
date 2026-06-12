@@ -1,8 +1,4 @@
-// ===== SUPABASE CONFIG =====
-const SUPABASE_URL = 'https://ougrkzfkohgfpfrrcmyk.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91Z3JremZrb2hnZnBmcnJjbXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjk5NDIsImV4cCI6MjA5Njg0NTk0Mn0.0_xqKgpsP7nWWITCbd3KMo-JzS9O8oH4XMecoYOtb-U';
-
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// db is initialized in index.html before this script loads
 
 // ===== TOAST =====
 function showToast(msg, type) {
