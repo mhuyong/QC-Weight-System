@@ -1,14 +1,8 @@
-// ===== DATA LAYER (localStorage) =====
-function getData(key) {
-    return JSON.parse(localStorage.getItem('qc_' + key) || '[]');
-}
-function setData(key, data) {
-    localStorage.setItem('qc_' + key, JSON.stringify(data));
-}
-function nextId(key) {
-    const items = getData(key);
-    return items.length ? Math.max(...items.map(i => i.id)) + 1 : 1;
-}
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://ougrkzfkohgfpfrrcmyk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9mtbReCHJZIygMqHD-19jw_r-q5YNi-';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== TOAST =====
 function showToast(msg, type) {
@@ -20,6 +14,13 @@ function showToast(msg, type) {
     el.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()"></button></div>`;
     container.appendChild(el);
     setTimeout(() => el.remove(), 3000);
+}
+
+function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
 }
 
 // ===== NAVIGATION =====
@@ -37,60 +38,54 @@ function showPage(name) {
 }
 
 // ===== SETTINGS: MACHINES =====
-function addMachine(e) {
+async function addMachine(e) {
     e.preventDefault();
     const no = document.getElementById('newMachineNo').value.trim();
     const name = document.getElementById('newMachineName').value.trim();
-    const machines = getData('machines');
-    if (machines.find(m => m.machine_no === no)) { showToast('หมายเลขเครื่องจักรนี้มีอยู่แล้ว', 'danger'); return false; }
-    machines.push({ id: nextId('machines'), machine_no: no, machine_name: name, is_active: true });
-    setData('machines', machines);
+    const { error } = await supabase.from('machines').insert({ machine_no: no, machine_name: name });
+    if (error) { showToast(error.message.includes('duplicate') ? 'หมายเลขเครื่องจักรนี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newMachineNo').value = '';
     document.getElementById('newMachineName').value = '';
     showToast('เพิ่มเครื่องจักรสำเร็จ', 'success');
     renderSettings();
     return false;
 }
-function toggleMachine(id) {
-    const machines = getData('machines');
-    const m = machines.find(x => x.id === id);
-    if (m) m.is_active = !m.is_active;
-    setData('machines', machines);
+
+async function toggleMachine(id) {
+    const { data } = await supabase.from('machines').select('is_active').eq('id', id).single();
+    await supabase.from('machines').update({ is_active: !data.is_active }).eq('id', id);
     renderSettings();
 }
-function openEditMachine(id) {
-    const m = getData('machines').find(x => x.id === id);
+
+async function openEditMachine(id) {
+    const { data } = await supabase.from('machines').select('*').eq('id', id).single();
     document.getElementById('editMachineId').value = id;
-    document.getElementById('editMachineNo').value = m.machine_no;
-    document.getElementById('editMachineName').value = m.machine_name || '';
+    document.getElementById('editMachineNo').value = data.machine_no;
+    document.getElementById('editMachineName').value = data.machine_name || '';
     new bootstrap.Modal(document.getElementById('editMachineModal')).show();
 }
-function saveMachineEdit() {
+
+async function saveMachineEdit() {
     const id = parseInt(document.getElementById('editMachineId').value);
     const no = document.getElementById('editMachineNo').value.trim();
     const name = document.getElementById('editMachineName').value.trim();
-    const machines = getData('machines');
-    if (machines.find(m => m.machine_no === no && m.id !== id)) { showToast('หมายเลขเครื่องจักรนี้มีอยู่แล้ว', 'danger'); return; }
-    const m = machines.find(x => x.id === id);
-    m.machine_no = no; m.machine_name = name;
-    setData('machines', machines);
+    const { error } = await supabase.from('machines').update({ machine_no: no, machine_name: name }).eq('id', id);
+    if (error) { showToast(error.message.includes('duplicate') ? 'หมายเลขเครื่องจักรนี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editMachineModal')).hide();
     showToast('แก้ไขเครื่องจักรสำเร็จ', 'success');
     renderSettings();
 }
 
 // ===== SETTINGS: PRODUCTS =====
-function addProduct(e) {
+async function addProduct(e) {
     e.preventDefault();
     const name = document.getElementById('newProductName').value.trim();
     const target = parseFloat(document.getElementById('newProductTarget').value);
     const min = parseFloat(document.getElementById('newProductMin').value);
     const max = parseFloat(document.getElementById('newProductMax').value);
     const unit = document.getElementById('newProductUnit').value.trim() || 'กรัม';
-    const products = getData('products');
-    if (products.find(p => p.name === name)) { showToast('ชื่อสินค้านี้มีอยู่แล้ว', 'danger'); return false; }
-    products.push({ id: nextId('products'), name, target_weight: target, min_weight: min, max_weight: max, unit });
-    setData('products', products);
+    const { error } = await supabase.from('products').insert({ name, target_weight: target, min_weight: min, max_weight: max, unit });
+    if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อสินค้านี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newProductName').value = '';
     document.getElementById('newProductTarget').value = '';
     document.getElementById('newProductMin').value = '';
@@ -100,127 +95,118 @@ function addProduct(e) {
     renderSettings();
     return false;
 }
-function openEditProduct(id) {
-    const p = getData('products').find(x => x.id === id);
+
+async function openEditProduct(id) {
+    const { data } = await supabase.from('products').select('*').eq('id', id).single();
     document.getElementById('editProductId').value = id;
-    document.getElementById('editProductName').value = p.name;
-    document.getElementById('editProductTarget').value = p.target_weight;
-    document.getElementById('editProductMin').value = p.min_weight;
-    document.getElementById('editProductMax').value = p.max_weight;
-    document.getElementById('editProductUnit').value = p.unit;
+    document.getElementById('editProductName').value = data.name;
+    document.getElementById('editProductTarget').value = data.target_weight;
+    document.getElementById('editProductMin').value = data.min_weight;
+    document.getElementById('editProductMax').value = data.max_weight;
+    document.getElementById('editProductUnit').value = data.unit;
     new bootstrap.Modal(document.getElementById('editProductModal')).show();
 }
-function saveProductEdit() {
+
+async function saveProductEdit() {
     const id = parseInt(document.getElementById('editProductId').value);
     const name = document.getElementById('editProductName').value.trim();
-    const products = getData('products');
-    if (products.find(p => p.name === name && p.id !== id)) { showToast('ชื่อสินค้านี้มีอยู่แล้ว', 'danger'); return; }
-    const p = products.find(x => x.id === id);
-    p.name = name;
-    p.target_weight = parseFloat(document.getElementById('editProductTarget').value);
-    p.min_weight = parseFloat(document.getElementById('editProductMin').value);
-    p.max_weight = parseFloat(document.getElementById('editProductMax').value);
-    p.unit = document.getElementById('editProductUnit').value.trim() || 'กรัม';
-    setData('products', products);
+    const target = parseFloat(document.getElementById('editProductTarget').value);
+    const min = parseFloat(document.getElementById('editProductMin').value);
+    const max = parseFloat(document.getElementById('editProductMax').value);
+    const unit = document.getElementById('editProductUnit').value.trim() || 'กรัม';
+    const { error } = await supabase.from('products').update({ name, target_weight: target, min_weight: min, max_weight: max, unit }).eq('id', id);
+    if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อสินค้านี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
     showToast('แก้ไขสินค้าสำเร็จ', 'success');
     renderSettings();
 }
 
 // ===== SETTINGS: OPERATORS =====
-function addOperator(e) {
+async function addOperator(e) {
     e.preventDefault();
     const name = document.getElementById('newOperatorName').value.trim();
     const empId = document.getElementById('newOperatorEmpId').value.trim();
-    const operators = getData('operators');
-    if (operators.find(o => o.name === name)) { showToast('ชื่อพนักงานนี้มีอยู่แล้ว', 'danger'); return false; }
-    operators.push({ id: nextId('operators'), name, employee_id: empId, is_active: true });
-    setData('operators', operators);
+    const { error } = await supabase.from('operators').insert({ name, employee_id: empId });
+    if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อพนักงานนี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newOperatorName').value = '';
     document.getElementById('newOperatorEmpId').value = '';
     showToast('เพิ่มพนักงานคุมเครื่องสำเร็จ', 'success');
     renderSettings();
     return false;
 }
-function toggleOperator(id) {
-    const operators = getData('operators');
-    const o = operators.find(x => x.id === id);
-    if (o) o.is_active = !o.is_active;
-    setData('operators', operators);
+
+async function toggleOperator(id) {
+    const { data } = await supabase.from('operators').select('is_active').eq('id', id).single();
+    await supabase.from('operators').update({ is_active: !data.is_active }).eq('id', id);
     renderSettings();
 }
-function openEditOperator(id) {
-    const o = getData('operators').find(x => x.id === id);
+
+async function openEditOperator(id) {
+    const { data } = await supabase.from('operators').select('*').eq('id', id).single();
     document.getElementById('editOperatorId').value = id;
-    document.getElementById('editOperatorName').value = o.name;
-    document.getElementById('editOperatorEmpId').value = o.employee_id || '';
+    document.getElementById('editOperatorName').value = data.name;
+    document.getElementById('editOperatorEmpId').value = data.employee_id || '';
     new bootstrap.Modal(document.getElementById('editOperatorModal')).show();
 }
-function saveOperatorEdit() {
+
+async function saveOperatorEdit() {
     const id = parseInt(document.getElementById('editOperatorId').value);
     const name = document.getElementById('editOperatorName').value.trim();
-    const operators = getData('operators');
-    if (operators.find(o => o.name === name && o.id !== id)) { showToast('ชื่อพนักงานนี้มีอยู่แล้ว', 'danger'); return; }
-    const o = operators.find(x => x.id === id);
-    o.name = name;
-    o.employee_id = document.getElementById('editOperatorEmpId').value.trim();
-    setData('operators', operators);
+    const empId = document.getElementById('editOperatorEmpId').value.trim();
+    const { error } = await supabase.from('operators').update({ name, employee_id: empId }).eq('id', id);
+    if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อพนักงานนี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editOperatorModal')).hide();
     showToast('แก้ไขพนักงานคุมเครื่องสำเร็จ', 'success');
     renderSettings();
 }
 
 // ===== SETTINGS: QC =====
-function addQC(e) {
+async function addQC(e) {
     e.preventDefault();
     const name = document.getElementById('newQCName').value.trim();
     const empId = document.getElementById('newQCEmpId').value.trim();
-    const qcs = getData('qc_inspectors');
-    if (qcs.find(q => q.name === name)) { showToast('ชื่อ QC นี้มีอยู่แล้ว', 'danger'); return false; }
-    qcs.push({ id: nextId('qc_inspectors'), name, employee_id: empId, is_active: true });
-    setData('qc_inspectors', qcs);
+    const { error } = await supabase.from('qc_inspectors').insert({ name, employee_id: empId });
+    if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อ QC นี้มีอยู่แล้ว' : error.message, 'danger'); return false; }
     document.getElementById('newQCName').value = '';
     document.getElementById('newQCEmpId').value = '';
     showToast('เพิ่ม QC สำเร็จ', 'success');
     renderSettings();
     return false;
 }
-function toggleQC(id) {
-    const qcs = getData('qc_inspectors');
-    const q = qcs.find(x => x.id === id);
-    if (q) q.is_active = !q.is_active;
-    setData('qc_inspectors', qcs);
+
+async function toggleQC(id) {
+    const { data } = await supabase.from('qc_inspectors').select('is_active').eq('id', id).single();
+    await supabase.from('qc_inspectors').update({ is_active: !data.is_active }).eq('id', id);
     renderSettings();
 }
-function openEditQC(id) {
-    const q = getData('qc_inspectors').find(x => x.id === id);
+
+async function openEditQC(id) {
+    const { data } = await supabase.from('qc_inspectors').select('*').eq('id', id).single();
     document.getElementById('editQCId').value = id;
-    document.getElementById('editQCNameField').value = q.name;
-    document.getElementById('editQCEmpId').value = q.employee_id || '';
+    document.getElementById('editQCNameField').value = data.name;
+    document.getElementById('editQCEmpId').value = data.employee_id || '';
     new bootstrap.Modal(document.getElementById('editQCModal')).show();
 }
-function saveQCEdit() {
+
+async function saveQCEdit() {
     const id = parseInt(document.getElementById('editQCId').value);
     const name = document.getElementById('editQCNameField').value.trim();
-    const qcs = getData('qc_inspectors');
-    if (qcs.find(q => q.name === name && q.id !== id)) { showToast('ชื่อ QC นี้มีอยู่แล้ว', 'danger'); return; }
-    const q = qcs.find(x => x.id === id);
-    q.name = name;
-    q.employee_id = document.getElementById('editQCEmpId').value.trim();
-    setData('qc_inspectors', qcs);
+    const empId = document.getElementById('editQCEmpId').value.trim();
+    const { error } = await supabase.from('qc_inspectors').update({ name, employee_id: empId }).eq('id', id);
+    if (error) { showToast(error.message.includes('duplicate') ? 'ชื่อ QC นี้มีอยู่แล้ว' : error.message, 'danger'); return; }
     bootstrap.Modal.getInstance(document.getElementById('editQCModal')).hide();
     showToast('แก้ไข QC สำเร็จ', 'success');
     renderSettings();
 }
 
 // ===== RENDER SETTINGS =====
-function renderSettings() {
-    const machines = getData('machines');
-    const products = getData('products');
-    const operators = getData('operators');
-    const qcs = getData('qc_inspectors');
+async function renderSettings() {
+    const { data: machines } = await supabase.from('machines').select('*').order('machine_no');
+    const { data: products } = await supabase.from('products').select('*').order('name');
+    const { data: operators } = await supabase.from('operators').select('*').order('name');
+    const { data: qcs } = await supabase.from('qc_inspectors').select('*').order('name');
 
-    document.getElementById('machinesTable').innerHTML = machines.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    document.getElementById('machinesTable').innerHTML = machines && machines.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
         <thead class="table-light"><tr><th>เลขเครื่อง</th><th>ชื่อ</th><th>สถานะ</th><th></th></tr></thead>
         <tbody>${machines.map(m => `<tr class="${m.is_active ? '' : 'text-muted'}">
             <td>${esc(m.machine_no)}</td><td>${esc(m.machine_name || '-')}</td>
@@ -229,14 +215,14 @@ function renderSettings() {
             <button class="btn btn-sm btn-outline-secondary" onclick="toggleMachine(${m.id})"><i class="bi bi-toggle-${m.is_active ? 'on' : 'off'}"></i></button></td>
         </tr>`).join('')}</tbody></table></div>` : '<p class="text-muted text-center py-2">ยังไม่มีข้อมูล</p>';
 
-    document.getElementById('productsTable').innerHTML = products.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    document.getElementById('productsTable').innerHTML = products && products.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
         <thead class="table-light"><tr><th>สินค้า</th><th>เป้า</th><th>ต่ำสุด</th><th>สูงสุด</th><th>หน่วย</th><th></th></tr></thead>
         <tbody>${products.map(p => `<tr>
             <td>${esc(p.name)}</td><td>${p.target_weight}</td><td>${p.min_weight}</td><td>${p.max_weight}</td><td>${esc(p.unit)}</td>
             <td><button class="btn btn-sm btn-outline-warning" onclick="openEditProduct(${p.id})"><i class="bi bi-pencil"></i></button></td>
         </tr>`).join('')}</tbody></table></div>` : '<p class="text-muted text-center py-2">ยังไม่มีข้อมูล</p>';
 
-    document.getElementById('operatorsTable').innerHTML = operators.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    document.getElementById('operatorsTable').innerHTML = operators && operators.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
         <thead class="table-light"><tr><th>ชื่อ</th><th>รหัส</th><th>สถานะ</th><th></th></tr></thead>
         <tbody>${operators.map(o => `<tr class="${o.is_active ? '' : 'text-muted'}">
             <td>${esc(o.name)}</td><td>${esc(o.employee_id || '-')}</td>
@@ -245,7 +231,7 @@ function renderSettings() {
             <button class="btn btn-sm btn-outline-secondary" onclick="toggleOperator(${o.id})"><i class="bi bi-toggle-${o.is_active ? 'on' : 'off'}"></i></button></td>
         </tr>`).join('')}</tbody></table></div>` : '<p class="text-muted text-center py-2">ยังไม่มีข้อมูล</p>';
 
-    document.getElementById('qcTable').innerHTML = qcs.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    document.getElementById('qcTable').innerHTML = qcs && qcs.length ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
         <thead class="table-light"><tr><th>ชื่อ</th><th>รหัส</th><th>สถานะ</th><th></th></tr></thead>
         <tbody>${qcs.map(q => `<tr class="${q.is_active ? '' : 'text-muted'}">
             <td>${esc(q.name)}</td><td>${esc(q.employee_id || '-')}</td>
@@ -256,7 +242,7 @@ function renderSettings() {
 }
 
 // ===== RECORD PAGE =====
-function initRecordPage() {
+async function initRecordPage() {
     const now = new Date();
     document.getElementById('checkDate').value = now.toISOString().slice(0, 10);
     const hourSel = document.getElementById('checkHour');
@@ -268,7 +254,7 @@ function initRecordPage() {
         if (h === now.getHours()) opt.selected = true;
         hourSel.appendChild(opt);
     }
-    populateDropdowns();
+    await populateDropdowns();
     document.getElementById('machineId').onchange = loadPreviousRecord;
     document.getElementById('checkDate').onchange = loadPreviousRecord;
     document.getElementById('checkHour').onchange = loadPreviousRecord;
@@ -281,30 +267,26 @@ function initRecordPage() {
     document.getElementById('noteInput').value = '';
 }
 
-function populateDropdowns() {
-    const machines = getData('machines').filter(m => m.is_active);
-    const operators = getData('operators').filter(o => o.is_active);
-    const qcs = getData('qc_inspectors').filter(q => q.is_active);
-    const products = getData('products');
+async function populateDropdowns() {
+    const { data: machines } = await supabase.from('machines').select('*').eq('is_active', true).order('machine_no');
+    const { data: operators } = await supabase.from('operators').select('*').eq('is_active', true).order('name');
+    const { data: qcs } = await supabase.from('qc_inspectors').select('*').eq('is_active', true).order('name');
+    const { data: products } = await supabase.from('products').select('*').order('name');
 
-    const mSel = document.getElementById('machineId');
-    mSel.innerHTML = '<option value="">-- เลือกเครื่องจักร --</option>' +
-        machines.map(m => `<option value="${m.id}">${esc(m.machine_no)}${m.machine_name ? ' - ' + esc(m.machine_name) : ''}</option>`).join('');
+    document.getElementById('machineId').innerHTML = '<option value="">-- เลือกเครื่องจักร --</option>' +
+        (machines || []).map(m => `<option value="${m.id}">${esc(m.machine_no)}${m.machine_name ? ' - ' + esc(m.machine_name) : ''}</option>`).join('');
 
-    const pSel = document.getElementById('productId');
-    pSel.innerHTML = '<option value="">-- เลือกสินค้า --</option>' +
-        products.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    document.getElementById('productId').innerHTML = '<option value="">-- เลือกสินค้า --</option>' +
+        (products || []).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
 
-    const oSel = document.getElementById('operatorId');
-    oSel.innerHTML = '<option value="">-- เลือกพนักงาน --</option>' +
-        operators.map(o => `<option value="${o.id}">${esc(o.name)}${o.employee_id ? ' (' + esc(o.employee_id) + ')' : ''}</option>`).join('');
+    document.getElementById('operatorId').innerHTML = '<option value="">-- เลือกพนักงาน --</option>' +
+        (operators || []).map(o => `<option value="${o.id}">${esc(o.name)}${o.employee_id ? ' (' + esc(o.employee_id) + ')' : ''}</option>`).join('');
 
-    const qSel = document.getElementById('qcId');
-    qSel.innerHTML = '<option value="">-- เลือก QC --</option>' +
-        qcs.map(q => `<option value="${q.id}">${esc(q.name)}${q.employee_id ? ' (' + esc(q.employee_id) + ')' : ''}</option>`).join('');
+    document.getElementById('qcId').innerHTML = '<option value="">-- เลือก QC --</option>' +
+        (qcs || []).map(q => `<option value="${q.id}">${esc(q.name)}${q.employee_id ? ' (' + esc(q.employee_id) + ')' : ''}</option>`).join('');
 }
 
-function loadPreviousRecord() {
+async function loadPreviousRecord() {
     const machineId = parseInt(document.getElementById('machineId').value);
     const checkDate = document.getElementById('checkDate').value;
     const checkHour = parseInt(document.getElementById('checkHour').value);
@@ -321,29 +303,24 @@ function loadPreviousRecord() {
         prevDate = d.toISOString().slice(0, 10);
     }
 
-    const records = getData('records');
-    const prev = records.filter(r => r.machine_id === machineId && r.check_date === prevDate && r.check_hour === prevHour);
-    const record = prev.length ? prev[prev.length - 1] : null;
+    const { data: records } = await supabase.from('weight_records')
+        .select('*, operators(name), qc_inspectors(name), products(name)')
+        .eq('machine_id', machineId).eq('check_date', prevDate).eq('check_hour', prevHour)
+        .order('created_at', { ascending: false }).limit(1);
 
-    if (record) {
-        const operators = getData('operators');
-        const qcs = getData('qc_inspectors');
-        const products = getData('products');
-        const op = operators.find(o => o.id === record.operator_id);
-        const qc = qcs.find(q => q.id === record.qc_id);
-        const pr = products.find(p => p.id === record.product_id);
-
+    if (records && records.length) {
+        const r = records[0];
         prevInfo.classList.remove('d-none');
-        document.getElementById('prevOperator').textContent = op ? op.name : '-';
-        document.getElementById('prevQC').textContent = qc ? qc.name : '-';
-        document.getElementById('prevWeight').textContent = record.weight;
+        document.getElementById('prevOperator').textContent = r.operators?.name || '-';
+        document.getElementById('prevQC').textContent = r.qc_inspectors?.name || '-';
+        document.getElementById('prevWeight').textContent = r.weight;
         const statusEl = document.getElementById('prevStatus');
-        statusEl.textContent = record.status;
-        statusEl.className = 'badge ' + (record.status === 'ผ่าน' ? 'bg-success' : 'bg-danger');
+        statusEl.textContent = r.status;
+        statusEl.className = 'badge ' + (r.status === 'ผ่าน' ? 'bg-success' : 'bg-danger');
 
-        document.getElementById('operatorId').value = record.operator_id;
-        document.getElementById('qcId').value = record.qc_id;
-        document.getElementById('productId').value = record.product_id;
+        document.getElementById('operatorId').value = r.operator_id;
+        document.getElementById('qcId').value = r.qc_id;
+        document.getElementById('productId').value = r.product_id;
         loadProductSpec();
     } else {
         prevInfo.classList.add('d-none');
@@ -351,18 +328,19 @@ function loadPreviousRecord() {
 }
 
 let currentSpec = null;
-function loadProductSpec() {
+async function loadProductSpec() {
     const productId = parseInt(document.getElementById('productId').value);
     const specInfo = document.getElementById('specInfo');
     if (!productId) { specInfo.style.display = 'none'; currentSpec = null; return; }
-    const product = getData('products').find(p => p.id === productId);
-    if (product) {
-        currentSpec = product;
-        document.getElementById('specTarget').textContent = product.target_weight;
-        document.getElementById('specMin').textContent = product.min_weight;
-        document.getElementById('specMax').textContent = product.max_weight;
-        document.getElementById('specUnit').textContent = product.unit;
-        document.getElementById('weightUnit').textContent = product.unit;
+
+    const { data } = await supabase.from('products').select('*').eq('id', productId).single();
+    if (data) {
+        currentSpec = data;
+        document.getElementById('specTarget').textContent = data.target_weight;
+        document.getElementById('specMin').textContent = data.min_weight;
+        document.getElementById('specMax').textContent = data.max_weight;
+        document.getElementById('specUnit').textContent = data.unit;
+        document.getElementById('weightUnit').textContent = data.unit;
         specInfo.style.display = 'block';
         checkWeight();
     }
@@ -393,7 +371,7 @@ function determineStatus(weight, min, max) {
     return 'ผ่าน';
 }
 
-function saveRecord(e) {
+async function saveRecord(e) {
     e.preventDefault();
     const machineId = parseInt(document.getElementById('machineId').value);
     const productId = parseInt(document.getElementById('productId').value);
@@ -404,16 +382,15 @@ function saveRecord(e) {
     const checkHour = parseInt(document.getElementById('checkHour').value);
     const note = document.getElementById('noteInput').value.trim();
 
-    const product = getData('products').find(p => p.id === productId);
+    const { data: product } = await supabase.from('products').select('*').eq('id', productId).single();
     const status = determineStatus(weight, product.min_weight, product.max_weight);
 
-    const records = getData('records');
-    records.push({
-        id: nextId('records'), machine_id: machineId, operator_id: operatorId, qc_id: qcId,
-        product_id: productId, weight, status, check_date: checkDate, check_hour: checkHour,
-        note, created_at: new Date().toISOString()
+    const { error } = await supabase.from('weight_records').insert({
+        machine_id: machineId, operator_id: operatorId, qc_id: qcId,
+        product_id: productId, weight, status, check_date: checkDate, check_hour: checkHour, note
     });
-    setData('records', records);
+
+    if (error) { showToast('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return false; }
 
     const cls = status === 'ผ่าน' ? 'success' : 'danger';
     showToast(`บันทึกสำเร็จ - สถานะ: ${status}`, cls);
@@ -435,21 +412,21 @@ function initFilterDate() {
     }
 }
 
-function loadRecords() {
+async function loadRecords() {
     const date = document.getElementById('filterDate').value;
     const hour = document.getElementById('filterHour').value;
-    const records = getData('records');
-    const machines = getData('machines');
-    const operators = getData('operators');
-    const qcs = getData('qc_inspectors');
-    const products = getData('products');
 
-    let filtered = records.filter(r => r.check_date === date);
-    if (hour !== '') filtered = filtered.filter(r => r.check_hour === parseInt(hour));
-    filtered.sort((a, b) => b.check_hour - a.check_hour || a.machine_id - b.machine_id);
+    let query = supabase.from('weight_records')
+        .select('*, machines(machine_no), operators(name), qc_inspectors(name), products(name, min_weight, max_weight, unit)')
+        .eq('check_date', date);
 
+    if (hour !== '') query = query.eq('check_hour', parseInt(hour));
+    query = query.order('check_hour', { ascending: false }).order('machine_id');
+
+    const { data: filtered } = await query;
     const container = document.getElementById('recordsTableContainer');
-    if (!filtered.length) {
+
+    if (!filtered || !filtered.length) {
         container.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-inbox" style="font-size:3rem;"></i><p class="mt-3">ไม่พบข้อมูลในวันที่เลือก</p></div>';
         return;
     }
@@ -457,18 +434,14 @@ function loadRecords() {
     container.innerHTML = `<div class="table-responsive"><table class="table table-hover table-bordered align-middle">
         <thead class="table-dark"><tr><th>#</th><th>ชั่วโมง</th><th>เครื่องจักร</th><th>สินค้า</th><th>พนักงานคุมเครื่อง</th><th>น้ำหนัก</th><th>พิกัด (ต่ำ-สูง)</th><th>สถานะ</th><th>QC ผู้ตรวจ</th><th>หมายเหตุ</th></tr></thead>
         <tbody>${filtered.map((r, i) => {
-            const m = machines.find(x => x.id === r.machine_id);
-            const o = operators.find(x => x.id === r.operator_id);
-            const q = qcs.find(x => x.id === r.qc_id);
-            const p = products.find(x => x.id === r.product_id);
             const statusBadge = r.status === 'ผ่าน' ? '<span class="badge bg-success">ผ่าน</span>' :
                 r.status === 'ต่ำกว่าเกณฑ์' ? '<span class="badge bg-danger">ต่ำกว่าเกณฑ์</span>' :
                 '<span class="badge bg-warning text-dark">เกินเกณฑ์</span>';
             return `<tr><td>${i + 1}</td><td><strong>${String(r.check_hour).padStart(2, '0')}:00</strong></td>
-                <td>${m ? esc(m.machine_no) : '-'}</td><td>${p ? esc(p.name) : '-'}</td>
-                <td>${o ? esc(o.name) : '-'}</td><td class="text-end fw-bold">${r.weight.toFixed(2)} ${p ? esc(p.unit) : ''}</td>
-                <td class="text-center text-muted">${p ? p.min_weight + ' - ' + p.max_weight : '-'}</td>
-                <td class="text-center">${statusBadge}</td><td>${q ? esc(q.name) : '-'}</td><td>${esc(r.note || '-')}</td></tr>`;
+                <td>${esc(r.machines?.machine_no)}</td><td>${esc(r.products?.name)}</td>
+                <td>${esc(r.operators?.name)}</td><td class="text-end fw-bold">${Number(r.weight).toFixed(2)} ${esc(r.products?.unit)}</td>
+                <td class="text-center text-muted">${r.products?.min_weight} - ${r.products?.max_weight}</td>
+                <td class="text-center">${statusBadge}</td><td>${esc(r.qc_inspectors?.name)}</td><td>${esc(r.note || '-')}</td></tr>`;
         }).join('')}</tbody></table></div>
     <div class="text-muted">แสดงข้อมูลทั้งหมด ${filtered.length} รายการ</div>`;
 }
@@ -480,18 +453,19 @@ function initSummaryDates() {
     document.getElementById('summaryTo').value = today;
 }
 
-function loadSummary() {
+async function loadSummary() {
     const from = document.getElementById('summaryFrom').value;
     const to = document.getElementById('summaryTo').value;
-    const records = getData('records').filter(r => r.check_date >= from && r.check_date <= to);
-    const machines = getData('machines');
-    const operators = getData('operators');
-    const qcs = getData('qc_inspectors');
-    const products = getData('products');
-    const totalMachines = machines.filter(m => m.is_active).length;
+
+    const { data: records } = await supabase.from('weight_records')
+        .select('*, machines(machine_no), operators(name), qc_inspectors(name), products(name)')
+        .gte('check_date', from).lte('check_date', to);
+
+    const { data: activeMachines } = await supabase.from('machines').select('id').eq('is_active', true);
+    const totalMachines = activeMachines ? activeMachines.length : 0;
 
     const container = document.getElementById('summaryContainer');
-    if (!records.length) {
+    if (!records || !records.length) {
         container.innerHTML = `
             <div class="card mb-4"><div class="card-header bg-primary text-white"><h5 class="mb-0"><i class="bi bi-person-badge"></i> สรุปผลงานพนักงานคุมเครื่อง</h5></div>
             <div class="card-body"><div class="text-center py-4 text-muted"><i class="bi bi-inbox" style="font-size:2rem;"></i><p class="mt-2">ไม่พบข้อมูลในช่วงวันที่เลือก</p></div></div></div>
@@ -503,8 +477,7 @@ function loadSummary() {
     // Operator totals
     const opMap = {};
     records.forEach(r => {
-        const o = operators.find(x => x.id === r.operator_id);
-        const key = o ? o.name : 'ไม่ทราบ';
+        const key = r.operators?.name || 'ไม่ทราบ';
         if (!opMap[key]) opMap[key] = { total: 0, pass: 0, fail: 0 };
         opMap[key].total++;
         if (r.status === 'ผ่าน') opMap[key].pass++; else opMap[key].fail++;
@@ -516,36 +489,31 @@ function loadSummary() {
     // Operator detail per hour
     const opDetailMap = {};
     records.forEach(r => {
-        const o = operators.find(x => x.id === r.operator_id);
-        const m = machines.find(x => x.id === r.machine_id);
-        const p = products.find(x => x.id === r.product_id);
-        const key = `${r.check_date}|${r.check_hour}|${o ? o.name : '?'}|${m ? m.machine_no : '?'}|${p ? p.name : '?'}`;
-        if (!opDetailMap[key]) opDetailMap[key] = { date: r.check_date, hour: r.check_hour, operator: o ? o.name : '?', machine: m ? m.machine_no : '?', product: p ? p.name : '?', total: 0, pass: 0, under: 0, over: 0 };
+        const key = `${r.check_date}|${r.check_hour}|${r.operators?.name}|${r.machines?.machine_no}|${r.products?.name}`;
+        if (!opDetailMap[key]) opDetailMap[key] = { date: r.check_date, hour: r.check_hour, operator: r.operators?.name || '?', machine: r.machines?.machine_no || '?', product: r.products?.name || '?', total: 0, pass: 0, under: 0, over: 0 };
         opDetailMap[key].total++;
         if (r.status === 'ผ่าน') opDetailMap[key].pass++;
         else if (r.status === 'ต่ำกว่าเกณฑ์') opDetailMap[key].under++;
         else opDetailMap[key].over++;
     });
-    const opDetails = Object.values(opDetailMap).sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour || a.operator.localeCompare(b.operator));
+    const opDetails = Object.values(opDetailMap).sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);
 
     // QC summary per date
     const qcMap = {};
     records.forEach(r => {
-        const q = qcs.find(x => x.id === r.qc_id);
-        const key = `${q ? q.name : '?'}|${r.check_date}`;
-        if (!qcMap[key]) qcMap[key] = { name: q ? q.name : '?', date: r.check_date, machines: new Set(), total: 0, hours: new Set() };
+        const key = `${r.qc_inspectors?.name}|${r.check_date}`;
+        if (!qcMap[key]) qcMap[key] = { name: r.qc_inspectors?.name || '?', date: r.check_date, machines: new Set(), total: 0, hours: new Set() };
         qcMap[key].machines.add(r.machine_id);
         qcMap[key].hours.add(r.check_hour);
         qcMap[key].total++;
     });
-    const qcSummary = Object.values(qcMap).sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+    const qcSummary = Object.values(qcMap).sort((a, b) => a.date.localeCompare(b.date));
 
     // QC coverage per hour
     const qcCovMap = {};
     records.forEach(r => {
-        const q = qcs.find(x => x.id === r.qc_id);
-        const key = `${q ? q.name : '?'}|${r.check_date}|${r.check_hour}`;
-        if (!qcCovMap[key]) qcCovMap[key] = { name: q ? q.name : '?', date: r.check_date, hour: r.check_hour, machines: new Set() };
+        const key = `${r.qc_inspectors?.name}|${r.check_date}|${r.check_hour}`;
+        if (!qcCovMap[key]) qcCovMap[key] = { name: r.qc_inspectors?.name || '?', date: r.check_date, hour: r.check_hour, machines: new Set() };
         qcCovMap[key].machines.add(r.machine_id);
     });
     const qcCoverage = Object.values(qcCovMap).sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);
@@ -596,13 +564,6 @@ function loadSummary() {
                 }).join('')}</tbody></table></div>
         </div>
     </div>`;
-}
-
-// ===== UTILS =====
-function esc(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
 }
 
 // ===== INIT =====
