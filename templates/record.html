@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}บันทึกน้ำหนัก - ระบบ QC{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> บันทึกน้ำหนักสินค้า</h5>
+            </div>
+            <div class="card-body">
+                <div id="prevInfo" class="prev-info d-none">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-clock-history"></i> ข้อมูลชั่วโมงก่อนหน้า</h6>
+                    <div class="row">
+                        <div class="col-md-4"><small class="text-muted">คนคุมเครื่อง:</small> <strong id="prevOperator">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted">QC ตรวจ:</small> <strong id="prevQC">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted">น้ำหนักล่าสุด:</small> <strong id="prevWeight">-</strong> <span id="prevStatus" class="spec-badge"></span></div>
+                    </div>
+                </div>
+
+                <form method="POST" id="recordForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">วันที่ตรวจ <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="check_date" id="checkDate" value="{{ today }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">ชั่วโมงที่ตรวจ <span class="text-danger">*</span></label>
+                            <select class="form-select" name="check_hour" id="checkHour" required>
+                                {% for h in range(24) %}
+                                <option value="{{ h }}" {% if h == current_hour %}selected{% endif %}>
+                                    {{ '%02d:00'|format(h) }} - {{ '%02d:00'|format(h+1 if h < 23 else 0) }} น.
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">เครื่องจักร <span class="text-danger">*</span></label>
+                            <select class="form-select" name="machine_id" id="machineId" required>
+                                <option value="">-- เลือกเครื่องจักร --</option>
+                                {% for m in machines %}
+                                <option value="{{ m.id }}">{{ m.machine_no }} {% if m.machine_name %}- {{ m.machine_name }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">สินค้า <span class="text-danger">*</span></label>
+                            <select class="form-select" name="product_id" id="productId" required>
+                                <option value="">-- เลือกสินค้า --</option>
+                                {% for p in products %}
+                                <option value="{{ p.id }}">{{ p.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12" id="specInfo" style="display:none;">
+                            <div class="alert alert-info mb-0 py-2">
+                                <i class="bi bi-info-circle"></i>
+                                พิกัด: <strong id="specTarget">-</strong> |
+                                ต่ำสุด: <strong id="specMin">-</strong> |
+                                สูงสุด: <strong id="specMax">-</strong>
+                                <span id="specUnit"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">พนักงานคุมเครื่อง <span class="text-danger">*</span></label>
+                            <select class="form-select" name="operator_id" id="operatorId" required>
+                                <option value="">-- เลือกพนักงาน --</option>
+                                {% for o in operators %}
+                                <option value="{{ o.id }}">{{ o.name }} {% if o.employee_id %}({{ o.employee_id }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">QC ผู้ตรวจ <span class="text-danger">*</span></label>
+                            <select class="form-select" name="qc_id" id="qcId" required>
+                                <option value="">-- เลือก QC --</option>
+                                {% for q in qc_inspectors %}
+                                <option value="{{ q.id }}">{{ q.name }} {% if q.employee_id %}({{ q.employee_id }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">น้ำหนักสินค้า <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" class="form-control form-control-lg" name="weight" id="weightInput"
+                                       step="0.01" required placeholder="กรอกน้ำหนัก">
+                                <span class="input-group-text" id="weightUnit">กรัม</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">หมายเหตุ</label>
+                            <input type="text" class="form-control form-control-lg" name="note" placeholder="หมายเหตุ (ถ้ามี)">
+                        </div>
+
+                        <div class="col-12" id="weightResult" style="display:none;">
+                            <div class="alert py-2 mb-0" id="weightAlert">
+                                <strong id="weightStatus"></strong>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-save"></i> บันทึกข้อมูล
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentSpec = null;
+
+function loadPreviousRecord() {
+    const machineId = document.getElementById('machineId').value;
+    const checkDate = document.getElementById('checkDate').value;
+    const checkHour = document.getElementById('checkHour').value;
+    const prevInfo = document.getElementById('prevInfo');
+
+    if (!machineId || !checkDate) {
+        prevInfo.classList.add('d-none');
+        return;
+    }
+
+    fetch(`/api/previous-record?machine_id=${machineId}&check_date=${checkDate}&check_hour=${checkHour}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.found) {
+                prevInfo.classList.remove('d-none');
+                document.getElementById('prevOperator').textContent = data.operator_name;
+                document.getElementById('prevQC').textContent = data.qc_name;
+                document.getElementById('prevWeight').textContent = data.weight;
+
+                const statusEl = document.getElementById('prevStatus');
+                statusEl.textContent = data.status;
+                statusEl.className = 'spec-badge ' + (data.status === 'ผ่าน' ? 'bg-success text-white' : 'bg-danger text-white');
+
+                document.getElementById('operatorId').value = data.operator_id;
+                document.getElementById('qcId').value = data.qc_id;
+                document.getElementById('productId').value = data.product_id;
+                loadProductSpec();
+            } else {
+                prevInfo.classList.add('d-none');
+            }
+        });
+}
+
+function loadProductSpec() {
+    const productId = document.getElementById('productId').value;
+    const specInfo = document.getElementById('specInfo');
+
+    if (!productId) {
+        specInfo.style.display = 'none';
+        currentSpec = null;
+        return;
+    }
+
+    fetch(`/api/product-spec?product_id=${productId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.target_weight) {
+                currentSpec = data;
+                document.getElementById('specTarget').textContent = data.target_weight;
+                document.getElementById('specMin').textContent = data.min_weight;
+                document.getElementById('specMax').textContent = data.max_weight;
+                document.getElementById('specUnit').textContent = data.unit;
+                document.getElementById('weightUnit').textContent = data.unit;
+                specInfo.style.display = 'block';
+                checkWeight();
+            }
+        });
+}
+
+function checkWeight() {
+    const weight = parseFloat(document.getElementById('weightInput').value);
+    const resultDiv = document.getElementById('weightResult');
+    const alertDiv = document.getElementById('weightAlert');
+    const statusText = document.getElementById('weightStatus');
+
+    if (!currentSpec || isNaN(weight)) {
+        resultDiv.style.display = 'none';
+        return;
+    }
+
+    resultDiv.style.display = 'block';
+    if (weight < currentSpec.min_weight) {
+        alertDiv.className = 'alert alert-danger py-2 mb-0';
+        statusText.textContent = `ต่ำกว่าเกณฑ์ (ต่ำกว่า ${currentSpec.min_weight} ${currentSpec.unit})`;
+    } else if (weight > currentSpec.max_weight) {
+        alertDiv.className = 'alert alert-danger py-2 mb-0';
+        statusText.textContent = `เกินเกณฑ์ (เกิน ${currentSpec.max_weight} ${currentSpec.unit})`;
+    } else {
+        alertDiv.className = 'alert alert-success py-2 mb-0';
+        statusText.textContent = 'ผ่านเกณฑ์';
+    }
+}
+
+document.getElementById('machineId').addEventListener('change', loadPreviousRecord);
+document.getElementById('checkDate').addEventListener('change', loadPreviousRecord);
+document.getElementById('checkHour').addEventListener('change', loadPreviousRecord);
+document.getElementById('productId').addEventListener('change', loadProductSpec);
+document.getElementById('weightInput').addEventListener('input', checkWeight);
+
+setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => {
+        setTimeout(() => el.remove(), 3000);
+    });
+}, 100);
+</script>
+{% endblock %}

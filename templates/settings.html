@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% block title %}ตั้งค่า - ระบบ QC{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-gear"></i> ตั้งค่าข้อมูลหลัก</h4>
+
+<div class="row g-4">
+    <!-- Machines -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="bi bi-cpu"></i> เครื่องจักร</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/settings/machine" class="row g-2 mb-3">
+                    <div class="col-5">
+                        <input type="text" class="form-control" name="machine_no" placeholder="เลขเครื่อง" required>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" class="form-control" name="machine_name" placeholder="ชื่อเครื่อง (ถ้ามี)">
+                    </div>
+                    <div class="col-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>เลขเครื่อง</th><th>ชื่อ</th><th>สถานะ</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for m in machines %}
+                            <tr class="{% if not m.is_active %}text-muted{% endif %}">
+                                <td>{{ m.machine_no }}</td>
+                                <td>{{ m.machine_name or '-' }}</td>
+                                <td>
+                                    {% if m.is_active %}
+                                    <span class="badge bg-success">ใช้งาน</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">ปิดใช้งาน</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editMachine({{ m.id }})" title="แก้ไข">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="/settings/toggle/machines/{{ m.id }}" class="btn btn-sm btn-outline-secondary" title="เปิด/ปิด">
+                                        <i class="bi bi-toggle-{% if m.is_active %}on{% else %}off{% endif %}"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="bi bi-box-seam"></i> สินค้า / พิกัดน้ำหนัก</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/settings/product" class="row g-2 mb-3">
+                    <div class="col-12">
+                        <input type="text" class="form-control" name="name" placeholder="ชื่อสินค้า" required>
+                    </div>
+                    <div class="col-4">
+                        <input type="number" class="form-control" name="target_weight" step="0.01" placeholder="น้ำหนักเป้า" required>
+                    </div>
+                    <div class="col-3">
+                        <input type="number" class="form-control" name="min_weight" step="0.01" placeholder="ต่ำสุด" required>
+                    </div>
+                    <div class="col-3">
+                        <input type="number" class="form-control" name="max_weight" step="0.01" placeholder="สูงสุด" required>
+                    </div>
+                    <div class="col-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button>
+                    </div>
+                    <div class="col-12">
+                        <input type="text" class="form-control" name="unit" placeholder="หน่วย (ค่าเริ่มต้น: กรัม)">
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>สินค้า</th><th>เป้า</th><th>ต่ำสุด</th><th>สูงสุด</th><th>หน่วย</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for p in products %}
+                            <tr>
+                                <td>{{ p.name }}</td>
+                                <td>{{ p.target_weight }}</td>
+                                <td>{{ p.min_weight }}</td>
+                                <td>{{ p.max_weight }}</td>
+                                <td>{{ p.unit }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editProduct({{ p.id }})" title="แก้ไข">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operators -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="bi bi-person"></i> พนักงานคุมเครื่อง</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/settings/operator" class="row g-2 mb-3">
+                    <div class="col-5">
+                        <input type="text" class="form-control" name="name" placeholder="ชื่อ-นามสกุล" required>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" class="form-control" name="employee_id" placeholder="รหัสพนักงาน">
+                    </div>
+                    <div class="col-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>ชื่อ</th><th>รหัส</th><th>สถานะ</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for o in operators %}
+                            <tr class="{% if not o.is_active %}text-muted{% endif %}">
+                                <td>{{ o.name }}</td>
+                                <td>{{ o.employee_id or '-' }}</td>
+                                <td>
+                                    {% if o.is_active %}
+                                    <span class="badge bg-success">ใช้งาน</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">ปิดใช้งาน</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editOperator({{ o.id }})" title="แก้ไข">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="/settings/toggle/operators/{{ o.id }}" class="btn btn-sm btn-outline-secondary" title="เปิด/ปิด">
+                                        <i class="bi bi-toggle-{% if o.is_active %}on{% else %}off{% endif %}"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QC Inspectors -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="bi bi-clipboard-check"></i> QC ผู้ตรวจ</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/settings/qc" class="row g-2 mb-3">
+                    <div class="col-5">
+                        <input type="text" class="form-control" name="name" placeholder="ชื่อ-นามสกุล" required>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" class="form-control" name="employee_id" placeholder="รหัสพนักงาน">
+                    </div>
+                    <div class="col-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus"></i></button>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>ชื่อ</th><th>รหัส</th><th>สถานะ</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for q in qc_inspectors %}
+                            <tr class="{% if not q.is_active %}text-muted{% endif %}">
+                                <td>{{ q.name }}</td>
+                                <td>{{ q.employee_id or '-' }}</td>
+                                <td>
+                                    {% if q.is_active %}
+                                    <span class="badge bg-success">ใช้งาน</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">ปิดใช้งาน</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editQC({{ q.id }})" title="แก้ไข">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="/settings/toggle/qc_inspectors/{{ q.id }}" class="btn btn-sm btn-outline-secondary" title="เปิด/ปิด">
+                                        <i class="bi bi-toggle-{% if q.is_active %}on{% else %}off{% endif %}"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Machine Modal -->
+<div class="modal fade" id="editMachineModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editMachineForm">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไขเครื่องจักร</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">เลขเครื่อง <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="machine_no" id="editMachineNo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ชื่อเครื่อง</label>
+                        <input type="text" class="form-control" name="machine_name" id="editMachineName">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Operator Modal -->
+<div class="modal fade" id="editOperatorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editOperatorForm">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไขพนักงานคุมเครื่อง</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="editOperatorName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">รหัสพนักงาน</label>
+                        <input type="text" class="form-control" name="employee_id" id="editOperatorEmpId">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit QC Modal -->
+<div class="modal fade" id="editQCModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editQCForm">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไข QC ผู้ตรวจ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="editQCName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">รหัสพนักงาน</label>
+                        <input type="text" class="form-control" name="employee_id" id="editQCEmpId">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editProductForm">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> แก้ไขสินค้า</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ชื่อสินค้า <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="editProductName" required>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="form-label fw-bold">น้ำหนักเป้า <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="target_weight" id="editProductTarget" step="0.01" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-bold">ต่ำสุด <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="min_weight" id="editProductMin" step="0.01" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-bold">สูงสุด <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="max_weight" id="editProductMax" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-bold">หน่วย</label>
+                        <input type="text" class="form-control" name="unit" id="editProductUnit">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editMachine(id) {
+    fetch('/api/machine/' + id).then(r => r.json()).then(data => {
+        document.getElementById('editMachineNo').value = data.machine_no;
+        document.getElementById('editMachineName').value = data.machine_name;
+        document.getElementById('editMachineForm').action = '/settings/machine/' + id;
+        new bootstrap.Modal(document.getElementById('editMachineModal')).show();
+    });
+}
+
+function editOperator(id) {
+    fetch('/api/operator/' + id).then(r => r.json()).then(data => {
+        document.getElementById('editOperatorName').value = data.name;
+        document.getElementById('editOperatorEmpId').value = data.employee_id;
+        document.getElementById('editOperatorForm').action = '/settings/operator/' + id;
+        new bootstrap.Modal(document.getElementById('editOperatorModal')).show();
+    });
+}
+
+function editQC(id) {
+    fetch('/api/qc/' + id).then(r => r.json()).then(data => {
+        document.getElementById('editQCName').value = data.name;
+        document.getElementById('editQCEmpId').value = data.employee_id;
+        document.getElementById('editQCForm').action = '/settings/qc/' + id;
+        new bootstrap.Modal(document.getElementById('editQCModal')).show();
+    });
+}
+
+function editProduct(id) {
+    fetch('/api/product/' + id).then(r => r.json()).then(data => {
+        document.getElementById('editProductName').value = data.name;
+        document.getElementById('editProductTarget').value = data.target_weight;
+        document.getElementById('editProductMin').value = data.min_weight;
+        document.getElementById('editProductMax').value = data.max_weight;
+        document.getElementById('editProductUnit').value = data.unit;
+        document.getElementById('editProductForm').action = '/settings/product/' + id;
+        new bootstrap.Modal(document.getElementById('editProductModal')).show();
+    });
+}
+
+setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => {
+        setTimeout(() => el.remove(), 3000);
+    });
+}, 100);
+</script>
+{% endblock %}

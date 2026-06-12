@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}ข้อมูลบันทึก - ระบบ QC{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-table"></i> ข้อมูลบันทึกน้ำหนัก</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">วันที่</label>
+                <input type="date" class="form-control" name="date" value="{{ date_filter }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">ชั่วโมง</label>
+                <select class="form-select" name="hour">
+                    <option value="">-- ทุกชั่วโมง --</option>
+                    {% for h in range(24) %}
+                    <option value="{{ h }}" {% if hour_filter|string == h|string %}selected{% endif %}>
+                        {{ '%02d:00'|format(h) }} น.
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> ค้นหา</button>
+            </div>
+        </form>
+
+        {% if records %}
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>ชั่วโมง</th>
+                        <th>เครื่องจักร</th>
+                        <th>สินค้า</th>
+                        <th>พนักงานคุมเครื่อง</th>
+                        <th>น้ำหนัก</th>
+                        <th>พิกัด (ต่ำ-สูง)</th>
+                        <th>สถานะ</th>
+                        <th>QC ผู้ตรวจ</th>
+                        <th>หมายเหตุ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ '%02d:00'|format(r.check_hour) }}</strong></td>
+                        <td>{{ r.machine_no }}</td>
+                        <td>{{ r.product_name }}</td>
+                        <td>{{ r.operator_name }}</td>
+                        <td class="text-end fw-bold">{{ '%.2f'|format(r.weight) }} {{ r.unit }}</td>
+                        <td class="text-center text-muted">{{ r.min_weight }} - {{ r.max_weight }}</td>
+                        <td class="text-center">
+                            {% if r.status == 'ผ่าน' %}
+                            <span class="badge bg-success">ผ่าน</span>
+                            {% elif r.status == 'ต่ำกว่าเกณฑ์' %}
+                            <span class="badge bg-danger">ต่ำกว่าเกณฑ์</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">เกินเกณฑ์</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.qc_name }}</td>
+                        <td>{{ r.note or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-muted">แสดงข้อมูลทั้งหมด {{ records|length }} รายการ</div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-3">ไม่พบข้อมูลในวันที่เลือก</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% block title %}สรุปผล - ระบบ QC{% endblock %}
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> สรุปผลการตรวจน้ำหนัก</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">วันที่เริ่มต้น</label>
+                <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">วันที่สิ้นสุด</label>
+                <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> ค้นหา</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Operator Performance Summary -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-person-badge"></i> สรุปผลงานพนักงานคุมเครื่อง</h5>
+    </div>
+    <div class="card-body">
+        {% if operator_totals %}
+        <div class="table-responsive mb-4">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>พนักงาน</th>
+                        <th class="text-center">ตรวจทั้งหมด</th>
+                        <th class="text-center">ผ่าน</th>
+                        <th class="text-center">ไม่ผ่าน</th>
+                        <th class="text-center">อัตราผ่าน (%)</th>
+                        <th class="text-center">ระดับ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ot in operator_totals %}
+                    <tr>
+                        <td class="fw-bold">{{ ot.operator_name }}</td>
+                        <td class="text-center">{{ ot.total_checks }}</td>
+                        <td class="text-center text-success fw-bold">{{ ot.pass_count }}</td>
+                        <td class="text-center text-danger fw-bold">{{ ot.fail_count }}</td>
+                        <td class="text-center">
+                            <div class="progress" style="height: 22px;">
+                                <div class="progress-bar {% if ot.pass_rate >= 95 %}bg-success{% elif ot.pass_rate >= 80 %}bg-warning{% else %}bg-danger{% endif %}"
+                                     style="width: {{ ot.pass_rate }}%">
+                                    {{ ot.pass_rate }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if ot.pass_rate >= 95 %}
+                            <span class="badge bg-success">ดีเยี่ยม</span>
+                            {% elif ot.pass_rate >= 80 %}
+                            <span class="badge bg-warning text-dark">ปานกลาง</span>
+                            {% else %}
+                            <span class="badge bg-danger">ต้องปรับปรุง</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="fw-bold mt-4 mb-3"><i class="bi bi-list-check"></i> รายละเอียดแต่ละชั่วโมง</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>วันที่</th>
+                        <th>ชั่วโมง</th>
+                        <th>พนักงาน</th>
+                        <th>เครื่องจักร</th>
+                        <th>สินค้า</th>
+                        <th class="text-center">ตรวจ</th>
+                        <th class="text-center">ผ่าน</th>
+                        <th class="text-center">ต่ำกว่า</th>
+                        <th class="text-center">เกิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in operator_summary %}
+                    <tr class="{% if s.under_count > 0 or s.over_count > 0 %}table-danger{% endif %}">
+                        <td>{{ s.check_date }}</td>
+                        <td>{{ '%02d:00'|format(s.check_hour) }}</td>
+                        <td>{{ s.operator_name }}</td>
+                        <td>{{ s.machine_no }}</td>
+                        <td>{{ s.product_name }}</td>
+                        <td class="text-center">{{ s.total_checks }}</td>
+                        <td class="text-center text-success">{{ s.pass_count }}</td>
+                        <td class="text-center text-danger fw-bold">{{ s.under_count }}</td>
+                        <td class="text-center text-warning fw-bold">{{ s.over_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+            <p class="mt-2">ไม่พบข้อมูลในช่วงวันที่เลือก</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- QC Performance Summary -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> สรุปการตรวจของ QC</h5>
+    </div>
+    <div class="card-body">
+        {% if qc_summary %}
+        <div class="table-responsive mb-4">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>QC</th>
+                        <th>วันที่</th>
+                        <th class="text-center">จำนวนเครื่องที่ตรวจ</th>
+                        <th class="text-center">เครื่องทั้งหมด</th>
+                        <th class="text-center">จำนวนครั้งที่ตรวจ</th>
+                        <th class="text-center">จำนวนชั่วโมงที่ตรวจ</th>
+                        <th class="text-center">ความครอบคลุม</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in qc_summary %}
+                    {% set coverage = (q.machines_checked / total_machines * 100) if total_machines > 0 else 0 %}
+                    <tr>
+                        <td class="fw-bold">{{ q.qc_name }}</td>
+                        <td>{{ q.check_date }}</td>
+                        <td class="text-center">{{ q.machines_checked }}</td>
+                        <td class="text-center">{{ total_machines }}</td>
+                        <td class="text-center">{{ q.total_checks }}</td>
+                        <td class="text-center">{{ q.hours_checked }}</td>
+                        <td class="text-center">
+                            {% if coverage >= 100 %}
+                            <span class="badge bg-success">ครบ 100%</span>
+                            {% elif coverage >= 75 %}
+                            <span class="badge bg-warning text-dark">{{ '%.0f'|format(coverage) }}%</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ '%.0f'|format(coverage) }}%</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="fw-bold mt-4 mb-3"><i class="bi bi-clock"></i> ความถี่การตรวจรายชั่วโมง</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>QC</th>
+                        <th>วันที่</th>
+                        <th>ชั่วโมง</th>
+                        <th class="text-center">เครื่องที่ตรวจ</th>
+                        <th class="text-center">เครื่องทั้งหมด</th>
+                        <th class="text-center">สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in qc_coverage %}
+                    <tr class="{% if c.machines_checked < total_machines %}table-warning{% endif %}">
+                        <td>{{ c.qc_name }}</td>
+                        <td>{{ c.check_date }}</td>
+                        <td>{{ '%02d:00'|format(c.check_hour) }}</td>
+                        <td class="text-center">{{ c.machines_checked }}</td>
+                        <td class="text-center">{{ total_machines }}</td>
+                        <td class="text-center">
+                            {% if c.machines_checked >= total_machines %}
+                            <span class="badge bg-success">ตรวจครบ</span>
+                            {% else %}
+                            <span class="badge bg-danger">ตรวจไม่ครบ (ขาด {{ total_machines - c.machines_checked }} เครื่อง)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+            <p class="mt-2">ไม่พบข้อมูลในช่วงวันที่เลือก</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
